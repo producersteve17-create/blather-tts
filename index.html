@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Blathering - Live Tip TTS</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+        }
+        h2 { color: #ffffff; margin-top: 0; text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #b3b3b3; }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            color: #ffffff;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #00bcd4;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00bcd4;
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #00acc1; }
+        #error-screen { text-align: center; color: #ff5252; display: none; }
+        #form-screen { display: none; }
+        .success-msg { text-align: center; color: #4caf50; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="error-screen">
+        <h2>Access Denied</h2>
+        <p>This page is only accessible after leaving a tip on Ken's PayPal!</p>
+    </div>
+
+    <div id="form-screen">
+        <h2>Send a Live TTS Message</h2>
+        <form id="ttsForm">
+            <div class="form-group">
+                <label for="viewerName">Your Name / Handle</label>
+                <input type="text" id="viewerName" required placeholder="Anonymous Blatherer">
+            </div>
+
+            <div class="form-group">
+                <label for="voiceSelect">Choose Voice</label>
+                <select id="voiceSelect" required>
+                    <option value="zk8T1RcQGU08dm3VSsdr">Ken</option>
+                    <option value="SvWOVaxCnkwKaouEhWu9">Producer Steve</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="ttsMessage">Message</label>
+                <textarea id="ttsMessage" rows="3" required placeholder="Type what you want the voice to say..."></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn">Send to Stream Queue</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // CONFIGURATION CONFIG
+    // ==========================================
+    // 1. Paste your exact localxpose public URL here (Keep the /DoAction at the end!)
+    const STREAMER_BOT_URL = 'https://jnzb0tpiaj.loclx.io/DoAction';
+
+    // 2. Add valid codes for your upcoming shows. (Change these whenever you want!)
+    const ALLOWED_SHOW_CODES = ['0516', 'show52', 'secretblather'];
+
+    // ==========================================
+    // GATEKEEPER LOGIC
+    // ==========================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const accessCode = urlParams.get('show');
+
+    const formScreen = document.getElementById('form-screen');
+    const errorScreen = document.getElementById('error-screen');
+
+    // Bypass gate check if you are testing locally (file:// URL) or if code matches
+    if (window.location.protocol === 'file:' || ALLOWED_SHOW_CODES.includes(accessCode)) {
+        formScreen.style.display = 'block';
+    } else {
+        errorScreen.style.display = 'block';
+    }
+
+    // ==========================================
+    // FORM SUBMISSION HANDLER
+    // ==========================================
+    document.getElementById('ttsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const viewerName = document.getElementById('viewerName').value;
+        const voiceId = document.getElementById('voiceSelect').value;
+        const ttsMessage = document.getElementById('ttsMessage').value;
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sending...';
+
+        try {
+            // This POSTs data straight through your LocalXpose tunnel into Streamer.bot
+            const response = await fetch(STREAMER_BOT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: { name: 'Live Tipping TTS' }, // This MUST match the Action name in Streamer.bot exactly
+                    args: {
+                        user: viewerName,
+                        message: ttsMessage,
+                        elevenLabsVoiceId: voiceId
+                    }
+                })
+            });
+
+            if (response.status === 204 || response.ok) {
+                formScreen.innerHTML = '<p class="success-msg">🎉 Sent! Your message has been added to the live stream queue.</p>';
+            } else {
+                throw new Error('Server spit back an error status.');
+            }
+        } catch (error) {
+            alert('Failed to send to stream. Make sure Steve running his tunnel app!');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Send to Stream Queue';
+        }
+    });
+</script>
+
+</body>
+</html>
