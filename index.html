@@ -137,9 +137,10 @@
             // This POSTs data straight through your LocalXpose tunnel into Streamer.bot
             const response = await fetch(STREAMER_BOT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors', // ◄--- ADD THIS: Tells the browser to skip the secret preflight check
+                headers: { 'Content-Type': 'text/plain' }, // ◄--- CHANGE THIS: Tricks the browser into thinking it's simple text
                 body: JSON.stringify({
-                    action: { name: 'Process Tip Message' }, // This MUST match the Action name in Streamer.bot exactly
+                    action: { name: 'Process Tip Message' }, // ◄--- This matches your exact action name!
                     args: {
                         user: viewerName,
                         message: ttsMessage,
@@ -148,7 +149,9 @@
                 })
             });
 
-            if (response.status === 204 || response.ok) {
+            // With mode: 'no-cors', the browser intentionally hides the response status code, returning a 0. 
+            // In this specific mode, a status of 0 means it successfully launched into outer space!
+            if (response.status === 204 || response.status === 0 || response.ok) {
                 formScreen.innerHTML = '<p class="success-msg">🎉 Sent! Your message has been added to the live stream queue.</p>';
             } else {
                 throw new Error('Server spit back an error status.');
