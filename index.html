@@ -78,9 +78,9 @@
             <div class="form-group">
                 <label for="voiceSelect">Choose Voice</label>
                 <select id="voiceSelect" required>
-    <option value="Ken_Voice">Ken</option>
-    <option value="Producer_Steve">Producer Steve</option>
-</select>
+                    <option value="Ken">Ken</option>
+                    <option value="Producer_Steve">Producer Steve</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -95,12 +95,12 @@
 
 <script>
     // ==========================================
-    // CONFIGURATION CONFIG
+    // DISCORD WEBHOOK CONFIGURATION
     // ==========================================
-    // 1. Paste your exact localxpose public URL here (Keep the /DoAction at the end!)
-    const STREAMER_BOT_URL = 'https://twbk0onxh4.loclx.io/DoAction';
+    // Paste your exact Discord Webhook URL inside the single quotes below:
+    const DISCORD_WEBHOOK_URL = 'PASTE_YOUR_DISCORD_WEBHOOK_URL_HERE';
 
-    // 2. Add valid codes for your upcoming shows. (Change these whenever you want!)
+    // Valid entry codes for upcoming shows
     const ALLOWED_SHOW_CODES = ['0516', 'show52', 'secretblather'];
 
     // ==========================================
@@ -112,7 +112,6 @@
     const formScreen = document.getElementById('form-screen');
     const errorScreen = document.getElementById('error-screen');
 
-    // Bypass gate check if you are testing locally (file:// URL) or if code matches
     if (window.location.protocol === 'file:' || ALLOWED_SHOW_CODES.includes(accessCode)) {
         formScreen.style.display = 'block';
     } else {
@@ -127,36 +126,45 @@
         
         const submitBtn = document.getElementById('submitBtn');
         const viewerName = document.getElementById('viewerName').value;
-        const voiceId = document.getElementById('voiceSelect').value;
+        const voiceName = document.getElementById('voiceSelect').value;
         const ttsMessage = document.getElementById('ttsMessage').value;
 
         submitBtn.disabled = true;
         submitBtn.innerText = 'Sending...';
 
+        // Formatting a clean embed message for your private Discord channel
+        const discordPayload = {
+            embeds: [{
+                title: "🚨 New Tip TTS Submitted!",
+                color: 5814783, // Blathering Teal color
+                fields: [
+                    { name: "From", value: viewerName, inline: true },
+                    { name: "Selected Voice", value: voiceName, inline: true },
+                    { name: "Message", value: `\`\`\`${ttsMessage}\`\`\`` }
+                ],
+                footer: { text: "Copy the message text below to paste into Speaker.bot" }
+            },
+            {
+                // Second text-only block makes it easy for Steve to double-click and copy on mobile/desktop
+                title: "Raw Text for Copying:",
+                description: ttsMessage
+            }]
+        };
+
         try {
-            const response = await fetch(STREAMER_BOT_URL, {
+            const response = await fetch(DISCORD_WEBHOOK_URL, {
                 method: 'POST',
-                headers: { 
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({
-                    action: { name: 'Process Tip Message' },
-                    args: {
-                        user: viewerName,
-                        message: ttsMessage,
-                        elevenLabsVoiceId: voiceId
-                    }
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(discordPayload)
             });
 
-            if (response.ok || response.status === 204) {
-                formScreen.innerHTML = '<p class="success-msg">🎉 Sent! Your message has been added to the live stream queue.</p>';
+            if (response.ok) {
+                formScreen.innerHTML = '<p class="success-msg">🎉 Sent! Your message has been sent to Steve\'s review queue.</p>';
             } else {
-                throw new Error('Server spit back an error status.');
+                throw new Error('Discord rejected the message.');
             }
         } catch (error) {
-            alert('Failed to send to stream. Make sure Steve running his tunnel app!');
+            alert('Failed to send to the queue. Please let Steve know!');
             submitBtn.disabled = false;
             submitBtn.innerText = 'Send to Stream Queue';
         }
